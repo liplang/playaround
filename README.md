@@ -238,3 +238,9 @@ Execution
 **Describe the dependencies. Let the Runtime decide the execution.**
 
 > **LIP：描述关系，而不是描述执行。**
+
+---
+
+### 关于 GC
+
+LIP 可以通过 dependency graph 精确知道：**某个值何时不再被 LIP 使用**。因此，在确定 `a` 已完成最后一个 consumer 后，可以生成：`a = nil`。这只是主动解除 LIP 对对象的引用，并不等于手动释放内存；如果 `global`、`cache` 等仍持有引用，对象依然由 Go GC 管理，不会影响正确性。因此可以把两者明确分工：**LIP 负责计算意义上的生命周期，Go GC 负责内存意义上的生命周期。** LIP 尽可能早地告诉 Go「我已经不用了」，Go 再决定对象何时真正回收。这样既利用了 LIP 的依赖信息，又无需自己实现 GC。`a = nil` 本身也有一点成本，因此主要针对**大型、长期存活或占用大量底层内存的对象**做这种优化。
